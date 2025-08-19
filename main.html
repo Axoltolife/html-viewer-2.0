@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Animated HTML Popup Loader</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #181d24;
+      font-family: 'Segoe UI', 'Consolas', 'Courier New', monospace;
+    }
+    #bg-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      background: transparent;
+      display: block;
+    }
+    #center-content {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      opacity: 0;
+      animation: contentAppear 1.2s cubic-bezier(.67,-0.55,.27,1.55) forwards;
+    }
+    @keyframes contentAppear {
+      0% { opacity: 0; transform: translate(-50%, -60%) scale(0.7) rotateY(-50deg);}
+      60% { opacity: 1; transform: translate(-50%, -48%) scale(1.05) rotateY(10deg);}
+      80% { opacity: 1; transform: translate(-50%, -52%) scale(0.96) rotateY(-8deg);}
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotateY(0);}
+    }
+    #popup-question {
+      background: rgba(24,28,35, 0.97);
+      border-radius: 16px;
+      box-shadow: 0 0 64px 16px #00eaff44, 0 0 8px #fff6;
+      padding: 36px 40px 32px 40px;
+      color: #eaffff;
+      border: 2px solid #00eaff;
+      font-size: 1.3em;
+      animation: popupIn 1.16s cubic-bezier(.67,-0.55,.27,1.55) forwards;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    @keyframes popupIn {
+      0% { opacity: 0; transform: scale(0.5) rotateY(-80deg);}
+      60% { opacity: 1; transform: scale(1.07) rotateY(18deg);}
+      80% { opacity: 1; transform: scale(0.98) rotateY(-6deg);}
+      100% { opacity: 1; transform: scale(1) rotateY(0);}
+    }
+    .fadeOut {
+      animation: fadeOutPopup .7s cubic-bezier(.67,-0.55,.27,1.55) forwards;
+    }
+    @keyframes fadeOutPopup {
+      to { opacity: 0; transform: scale(0.3) rotateY(70deg);}
+    }
+    #main-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      margin-top: 0;
+      opacity: 0;
+      animation: controlsIn 1.2s 0.4s forwards cubic-bezier(.67,-0.55,.27,1.55);
+    }
+    @keyframes controlsIn {
+      from { opacity: 0; transform: scale(0.8);}
+      to { opacity: 1; transform: scale(1);}
+    }
+    .button {
+      font-size: 1.2em;
+      padding: 14px 38px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(90deg, #00eaff 0%, #0066ff 100%);
+      color: #191a1f;
+      cursor: pointer;
+      transition: box-shadow .4s, transform .23s;
+      box-shadow: 0 0 24px #00eaff33;
+      font-weight: bold;
+      outline: none;
+      margin-top: 0;
+    }
+    .button:hover {
+      box-shadow: 0 0 52px #00eaff77;
+      transform: scale(1.07);
+    }
+    #fileInput {
+      display: none;
+    }
+    .spinner {
+      margin: 0 auto 16px auto;
+      width: 46px; height: 46px;
+      border: 6px solid #00eaff33;
+      border-top: 6px solid #00eaff;
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
+      display: inline-block;
+      transition: opacity 0.5s;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .checkmark {
+      margin: 0 auto 16px auto;
+      display: inline-block;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: #00eaff;
+      position: relative;
+      animation: checkAppear 0.7s cubic-bezier(.67,-0.55,.27,1.55);
+    }
+    @keyframes checkAppear {
+      from { transform: scale(0.7); opacity: 0;}
+      to { transform: scale(1); opacity: 1;}
+    }
+    .checkmark:after {
+      content: '';
+      position: absolute;
+      left: 12px; top: 16px;
+      width: 10px; height: 18px;
+      border: solid #181d24;
+      border-width: 0 6px 6px 0;
+      display: block;
+      transform: rotate(45deg);
+      border-radius: 2px;
+    }
+    .hidden { display: none !important; }
+    /* Entry animation for background */
+    .bg-appear {
+      animation: bgAppear 1.5s cubic-bezier(.68,-0.55,.27,1.55) forwards;
+      opacity: 0;
+    }
+    @keyframes bgAppear {
+      0% { opacity: 0; }
+      70% { opacity: 1; }
+      100% { opacity: 1; }
+    }
+    /* Loading Overlay */
+    #loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: radial-gradient(circle at 50% 30%, #0066ff66 0%, #181d24 80%);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s cubic-bezier(.67,-0.55,.27,1.55);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #loading-overlay.fadeOut {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.2s cubic-bezier(.67,-0.55,.27,1.55);
+    }
+    #loading-spinner {
+      width: 90px; height: 90px;
+      border: 14px solid #00eaff44;
+      border-top: 14px solid #00eaff;
+      border-radius: 50%;
+      animation: spin 1.5s linear infinite;
+      margin-bottom: 38px;
+      opacity: 1;
+      transition: opacity 0.7s;
+    }
+    #loading-check {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: #00eaff;
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      animation: checkAppear 0.7s cubic-bezier(.67,-0.55,.27,1.55);
+      margin-bottom: 38px;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    #loading-check.show {
+      opacity: 1;
+      transition: opacity 0.7s;
+    }
+    #loading-check svg {
+      width: 52px;
+      height: 52px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    #loading-text {
+      color: #eaffff;
+      font-size: 2em;
+      text-shadow: 0 0 24px #00eaff66;
+      font-weight: bold;
+      margin-top: 14px;
+      letter-spacing: 0.05em;
+      text-align: center;
+      animation: fadeInText 2.8s cubic-bezier(.67,-0.55,.27,1.55);
+    }
+    @keyframes fadeInText {
+      0% { opacity: 0; }
+      40% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading-overlay">
+    <div id="loading-spinner"></div>
+    <div id="loading-check">
+      <svg viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="25" fill="#00eaff"/>
+        <path d="M16 26l7.5 7.5L36 18" fill="none" stroke="#181d24" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div id="loading-text">Loading...</div>
+  </div>
+  <canvas id="bg-canvas" class="bg-appear"></canvas>
+  <div id="center-content">
+    <div id="popup-question">
+      <div id="popup-spinner" class="spinner"></div>
+      <div id="popup-check" class="checkmark hidden"></div>
+      <div>
+        <b>Do you have popups enabled?</b>
+        <br><br>
+        <small>This page needs popups enabled to open HTML files in a new window.<br>
+        Please ensure your browser allows popups for this site.</small>
+      </div>
+      <br>
+      <button class="button" id="continueBtn">Continue</button>
+    </div>
+    <div id="main-controls" class="hidden">
+      <button class="button" id="openBtn">Open HTML file in Popup</button>
+      <input type="file" id="fileInput" accept=".html,text/html" />
+    </div>
+  </div>
+  <script>
+    // --- Animated grid background: lines point to mouse ---
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let gridCols = 18, gridRows = 11;
+    let grid = [];
+    let time = 0;
+    let mouse = {x: window.innerWidth/2, y: window.innerHeight/2};
+
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      makeGrid();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function makeGrid(){
+      grid = [];
+      let padX = canvas.width/(gridCols+1), padY = canvas.height/(gridRows+1);
+      for(let i=1;i<=gridCols;i++){
+        for(let j=1;j<=gridRows;j++){
+          grid.push({x:padX*i, y:padY*j});
+        }
+      }
+    }
+
+    window.addEventListener('mousemove',e=>{
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    function animate(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      time += 0.018;
+      for(let pt of grid){
+        // Animate origin jitter
+        let ox = pt.x + Math.sin(time + pt.y*0.013) * 6;
+        let oy = pt.y + Math.cos(time + pt.x*0.014) * 6;
+        // Vector to mouse
+        let dx = mouse.x-ox, dy = mouse.y-oy;
+        let mag = Math.sqrt(dx*dx+dy*dy)+1;
+        let len = 42 + 26*Math.cos(time*0.9+ox*0.01+oy*0.01);
+        let tx = ox + dx/mag*len;
+        let ty = oy + dy/mag*len;
+        // Color by distance
+        let dist = Math.sqrt((ox-mouse.x)**2+(oy-mouse.y)**2);
+        let c = 180 + Math.sin((dist/60)+time*0.7)*50;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(ox,oy);
+        ctx.lineTo(tx,ty);
+        ctx.strokeStyle = `hsla(${c},100%,55%,${0.33+0.33*Math.sin(time+ox*0.07+oy*0.07)})`;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.lineWidth = 2.6 + Math.sin(time+ox*0.04+oy*0.04)*1.2;
+        ctx.stroke();
+        ctx.restore();
+        // Draw grid point
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(ox,oy,2.3,0,2*Math.PI);
+        ctx.fillStyle = `hsla(${c},100%,65%,0.85)`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fill();
+        ctx.restore();
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // --- Loading overlay animation ---
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const loadingCheck = document.getElementById('loading-check');
+    // Show spinner for 4 sec, then checkmark for 1 sec, then fade out
+    setTimeout(()=>{
+      loadingSpinner.style.opacity = 0;
+      loadingCheck.classList.add('show');
+      setTimeout(()=>{
+        loadingOverlay.classList.add('fadeOut');
+        setTimeout(()=>{
+          loadingOverlay.style.display='none';
+        },1200);
+      },1100);
+    },4000);
+
+    // --- Popup logic ---
+    const popupDiv = document.getElementById('popup-question');
+    const continueBtn = document.getElementById('continueBtn');
+    const mainControls = document.getElementById('main-controls');
+    const openBtn = document.getElementById('openBtn');
+    const fileInput = document.getElementById('fileInput');
+    const centerContent = document.getElementById('center-content');
+    const popupSpinner = document.getElementById('popup-spinner');
+    const popupCheck = document.getElementById('popup-check');
+
+    function showMainControls(){
+      popupDiv.classList.add('fadeOut');
+      setTimeout(()=>{
+        popupDiv.classList.add('hidden');
+        mainControls.classList.remove('hidden');
+      }, 750);
+    }
+
+    // Show checkmark after 2 seconds, hide spinner
+    setTimeout(()=>{
+      popupSpinner.classList.add('hidden');
+      popupCheck.classList.remove('hidden');
+    },2000);
+
+    continueBtn.addEventListener('click', ()=>{
+      showMainControls();
+    });
+
+    openBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const htmlContent = event.target.result;
+        // To avoid about:blank issues, create popup and set src to a data URL
+        const popup = window.open('', '', 'width=800,height=600');
+        if (popup) {
+          // Use src=data:text/html for full browser parsing and JS
+          const blob = new Blob([htmlContent], {type:'text/html'});
+          const url = URL.createObjectURL(blob);
+          popup.location.href = url;
+          setTimeout(()=>URL.revokeObjectURL(url),30000); // Clean up
+        } else {
+          alert('Popup was blocked. Please enable popups for this site.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Entry animation for bg and content
+    window.onload = () => {
+      canvas.classList.add('bg-appear');
+      centerContent.style.opacity = 0;
+      setTimeout(()=>{centerContent.style.opacity=1;},1200);
+      mainControls.classList.add('hidden');
+      popupDiv.classList.remove('hidden');
+    };
+  </script>
+</body>
+</html>
+
+
